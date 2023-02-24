@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: "{{ .Values.app_name }}-statefulset"
+spec:
+  selector:
+    matchLabels:
+      app: nginx # has to match .spec.template.metadata.labels
+  serviceName: "nginx"
+  replicas: 3 # by default is 1
+  minReadySeconds: 10 # by default is 0
+  template:
+    metadata:
+      labels:
+        app: nginx # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: nginx
+        image: "{{ .Values.image_name }}:{{ .Values.image_version }}"
+        ports:
+        - containerPort: 80
+          name: web
+        lifecycle:
+          postStart:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  cat <<EOF >> /usr/share/nginx/html/index.html
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                    <title>Welcome to Onyeka's world!</title>
+                    <style>
+                    html { color-scheme: light dark; }
+                    body { width: 35em; margin: 0 auto;
+                    font-family: Tahoma, Verdana, Arial, sans-serif; }
+                    </style>
+                    </head>
+                    <body>
+                    <h1>Welcome to Onyeka's world This is coming from a Statefulset!</h1>
+                    <p>If you see this page, the nginx web server for DARE.IO is successfully installed and
+                    working. It is mounted in the container and data will not be lost.</p>
+
+                    <p>For online documentation and support please refer to
+                    <a href="http://nginx.org/">nginx.org</a>.<br/>
+                    Commercial support is available at
+                    <a href="http://nginx.com/">nginx.com</a>.</p>
+
+                    <p><em>Thank you for using Onyeka's world.</em></p>
+                    </body>
+                    </html>
+                  EOF
+        volumeMounts:
+          - name: www
+            mountPath: /usr/share/nginx/html
+          - name: java-config
+            mountPath: /usr/share/java
+            readOnly: true
+      volumes:
+        - name: java-config
+          configMap:
+            name: java-config
+            items:
+            - key: java.properties
+              path: java.properties
+            - key: ui.properties
+              path: ui.properties
+  volumeClaimTemplates:
+  - metadata:
+      name: www
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "gp2"
+      resources:
+        requests:
+          storage: 1Gi

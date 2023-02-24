@@ -1,0 +1,6 @@
+replicas: 3
+app_name: finance
+image_name: nginx
+image_version: latest
+container_port: 80
+environment: "dev"
